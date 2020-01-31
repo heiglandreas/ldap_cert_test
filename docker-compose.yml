@@ -1,0 +1,48 @@
+version: '3.7'
+networks:
+  osinet:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: osinet
+
+services:
+  openldap:
+    container_name: openldap
+    hostname: openldap
+    image: osixia/openldap
+    command: --loglevel debug
+    environment:
+      # - LDAP_OPENLDAP_GID=1000 # leftover from when I was trying to set that without building.....
+      # - LDAP_OPENLDAP_UID=1000
+      #- LDAP_ORGANISATION="My Org"
+      #- LDAP_DOMAIN="mydomain.com"
+      #- LDAP_ADMIN_PASSWORD="password"
+      - LDAP_TLS_PROTOCOL_MIN=1.0
+      - LDAP_TLS_VERIFY_CLIENT=try
+      #- LDAP_TLS_CIPHER_SUITE=HIGH:+SSLv3:TLSv1:MEDIUM:+SSLv2:@STRENGTH:+SHA:+MD5:!NULL
+    volumes:
+      - type: bind
+        source: ./data/ldap/var-lib-ldap
+        target: /var/lib/ldap
+      - type: bind
+        source: ./data/ldap/etc-ldap-slap.d
+        target: /etc/ldap/slap.d
+    ports:
+      - 127.0.0.1:3389:389
+      - 127.0.0.1:3636:636
+    networks:
+      - osinet
+    restart: "no"
+    
+  php:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: php
+    volumes:
+    - ./src:/app
+    - ./etc:/etc/ldap
+    - ./certs:/usr/local/ssl/certs
+    networks: 
+    - osinet 
+  
